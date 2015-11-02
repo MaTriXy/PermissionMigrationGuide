@@ -40,7 +40,11 @@ public class MainActivity extends AppCompatActivity implements
         ConnectionCallbacks, OnConnectionFailedListener {
 
     protected static final String TAG = "MainActivity";
-    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 3982;
+    /**
+     * Can only use lower 8 bits for requestCode when using support library solution
+     */
+    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 4;
+
 
     private static final int NO_PERMISSIONS_CHECK = 0;
     private static final int MARSHMALLOW_PERMISSIONS_CHECK = 1;
@@ -137,45 +141,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    /**
-     * Runs when a GoogleApiClient object successfully connects.
-     */
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            getLocation();
-        } else {
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
-                // Explain to the user why we need to read the contacts
-                Toast.makeText(this, R.string.permission_rationale, Toast.LENGTH_LONG).show();
-            }
-
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted
-                    getLocation();
-
-
-                } else {
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
-        }
-    }
 
     private void getLocation() {
         // Provides a simple way of getting a device's location and is well suited for
@@ -184,8 +149,10 @@ public class MainActivity extends AppCompatActivity implements
         // in rare cases when a location is not available.
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLastLocation != null) {
-            mLatitudeText.setText(String.valueOf(mLastLocation.getLatitude()));
-            mLongitudeText.setText(String.valueOf(mLastLocation.getLongitude()));
+            mLatitudeText.setText(String.format("%s: %f", mLatitudeLabel,
+                    mLastLocation.getLatitude()));
+            mLongitudeText.setText(String.format("%s: %f", mLongitudeLabel,
+                    mLastLocation.getLongitude()));
         } else {
             Toast.makeText(this, R.string.no_location_detected, Toast.LENGTH_LONG).show();
         }
@@ -206,5 +173,87 @@ public class MainActivity extends AppCompatActivity implements
         Log.i(TAG, "Connection suspended");
         mGoogleApiClient.connect();
     }
+
+
+    /**
+     * Runs when a GoogleApiClient object successfully connects.
+     */
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        switch (mState) {
+            case NO_PERMISSIONS_CHECK:
+                getLocation();
+                break;
+            case MARSHMALLOW_PERMISSIONS_CHECK:
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1)
+                    marshmallowPermissionsFlowOnConnected();
+                else {
+                    Toast.makeText(this, R.string.not_marshmallow, Toast.LENGTH_LONG).show();
+                }
+                break;
+            case SUPPORT_LIBRARY_PERMISSION_CHECK:
+                supportLibPermissionsOnConnected();
+                break;
+        }
+
+
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private void marshmallowPermissionsFlowOnConnected() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            getLocation();
+        } else {
+            // Should we show an explanation?
+            if (shouldShowRequestPermissionRationale(
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Explain to the user why we need to read the contacts
+                Toast.makeText(this, R.string.permission_rationale, Toast.LENGTH_LONG).show();
+            }
+
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        marshmallowonRequestPermissionsResult(requestCode, grantResults);
+    }
+
+    private void marshmallowonRequestPermissionsResult(int requestCode, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                    getLocation();
+                } else {
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+        }
+    }
+
+
+    private void supportLibPermissionsOnConnected() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            getLocation();
+        } else {
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Explain to the user why we need to read the contacts
+                Toast.makeText(this, R.string.permission_rationale, Toast.LENGTH_LONG).show();
+            }
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+
 
 }

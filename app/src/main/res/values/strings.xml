@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">PermissionMigrationGuide</string>
+
+    <string name="latitude_label">Latitude</string>
+    <string name="longitude_label">Longitude</string>
+
+    <string name="no_location_detected">
+        No location detected. Make sure location is enabled on the device.
+    </string>
+
+
+    <string name="permission_rationale">We need permission to ger location to be able to show
+        location.
+    </string>
+    <string name="permission_denied">Permission denied</string>
+
+    <string name="not_marshmallow">Android Marshmallow not detected - please change device</string>
+
+</resources>
